@@ -55,9 +55,6 @@ program_indicators_data_value_url = f"{DHIS2_GET_API_URL}analytics.json"
 
 dataValueSet_endPoint = f"{DHIS2_POST_API_URL}dataValueSets" 
 
-#DHIS2_AUTH_POST = ("hispdev", "Devhisp@1")
-#session_post = requests.Session()
-#session_post.auth = DHIS2_AUTH_POST
 
 # Create a session object for persistent connection
 #session_get = requests.Session()
