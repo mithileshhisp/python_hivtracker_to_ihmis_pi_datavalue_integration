@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText 
 from email.mime.base import MIMEBase 
 from email import encoders
+from urllib.parse import quote
 
 ## for nepali date
 import nepali_datetime
@@ -18,14 +19,122 @@ from datetime import datetime, timedelta, date
 
 from dotenv import load_dotenv
 import os
+import glob
 load_dotenv()
 
+FROM_EMAIL_ADDR = os.getenv("FROM_EMAIL_ADDR")
+FROM_EMAIL_PASSWORD = os.getenv("FROM_EMAIL_PASSWORD")
+
 from constants import LOG_FILE
+#from app import QueueLogHandler
 
 DHIS2_API_URL = os.getenv("DHIS2_API_URL")
 
+
+# ADD THIS PART (UI streaming) for print in HTML Page in response
+#Add a global log queue
+import queue
+log_queue = queue.Queue()
+#Add a Queue logging handler
+#import logging
+
+'''
+class QueueLogHandler(logging.Handler):
+    def emit(self, record):
+        log_queue.put(self.format(record))
+'''
+
+import logging
+import queue
+
+log_queue = queue.Queue()
+
+class QueueLogHandler(logging.Handler):
+    def emit(self, record):
+        log_queue.put(self.format(record))
+
+
+def configure_logging_for_app():
+    import os
+    from constants import LOG_FILE
+
+    LOG_DIR = "logs"
+    os.makedirs(LOG_DIR, exist_ok=True)
+    assert LOG_DIR != "/" and LOG_DIR != "" #### Never delete outside log folder.
+
+    log_path = os.path.join(LOG_DIR, LOG_FILE)
+
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s"
+    )
+
+    file_handler = logging.FileHandler(log_path)
+    file_handler.setFormatter(formatter)
+
+    queue_handler = QueueLogHandler()
+    queue_handler.setFormatter(formatter)
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    # 🔴 CRITICAL: remove old handlers
+    root.handlers.clear()
+
+    root.addHandler(file_handler)
+    root.addHandler(queue_handler)
+
+    logging.info("Logging initialized for Flask app")
+
+
+
 def configure_logging():
-    logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+    #Optional (Advanced, but useful)
+    '''
+    import sys
+    sys.stdout.write = lambda msg: logging.info(msg)
+    logging.info(f"[job:{job_id}] step 1")
+    '''
+
+    LOG_DIR = "logs"
+    #os.makedirs(LOG_DIR, exist_ok=True)
+
+    os.makedirs(LOG_DIR, exist_ok=True)
+    assert LOG_DIR != "/" and LOG_DIR != "" #### Never delete outside log folder.
+
+    # Create unique log filename
+    #log_filename = f"log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+    log_filename = LOG_FILE
+    #log_filename = f"{LOG_FILE}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+    log_path = os.path.join(LOG_DIR, log_filename)
+
+    #logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    
+    logging.basicConfig(filename=log_path, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    '''
+    logging.basicConfig(filename=log_path,
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_path),
+            QueueLogHandler()   # 👈 THIS is the key
+        ]
+    )
+    '''
+    # ✅ ADD THIS (UI streaming)
+    '''
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Prevent duplicate handlers
+    if not any(isinstance(h, QueueLogHandler) for h in root_logger.handlers):
+        queue_handler = QueueLogHandler()
+        formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s"
+        )
+        queue_handler.setFormatter(formatter)
+        root_logger.addHandler(queue_handler)
+    '''
 
 def log_info(message):
     logging.info(message)
@@ -43,6 +152,7 @@ def get_program_indicator_list( program_indicators_api_url,session_get,META_ATTR
         f"attributeValues.attribute.id:eq:{META_ATTRIBUTE_PI_TO_AGGREGATE_DE}&paging=false"
     ]
 
+    #https://tracker.hivaids.gov.np/save-child-2.27/api/programIndicators?fields=id,name,attributeValues&filter=attributeValues.attribute.id:eq:tjqWoZ59saL&paging=false
     url_with_filters = f"{program_indicators_api_url}?fields=id,name,attributeValues&filter={'&filter='.join(filters)}"
     response_program_indicators = session_get.get (url_with_filters )
    
@@ -74,6 +184,7 @@ def get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT
         f"attributeValues.attribute.id:eq:{META_ATTRIBUTE_HMIS_ORG_UNIT_CODE}&paging=false"
     ]
 
+    #https://tracker.hivaids.gov.np/save-child-2.27/https://tracker.hivaids.gov.np/save-child-2.27/api/organisationUnits?fields=id,name,attributeValues&filter=attributeValues.attribute.id:eq:nEIktLQW451&paging=false
     org_unit_url_with_filters = f"{org_unit_api_url}?fields=id,name,attributeValues&filter={'&filter='.join(filters)}"
 
     #print(f"org_unit_url_with_filters : {org_unit_url_with_filters}")
@@ -194,10 +305,16 @@ def get_orgunit_grp_member( orgunit_grp_api_url,session_get, ORG_UNIT_GROUP_ART_
     else:
         print(f" Failed to retrieve org_unit. Status code: {response_orgunit_grp_member.status_code}")
 
+    '''
+    return {
+        "list": orgunits,
+        "string": ";".join(orgunits)
+    }  
+    '''  
     return orgunit_grp_member_list
 
 
-def get_program_indicators_data_values( program_indicators_data_value_url,session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS ):
+def get_program_indicators_data_values( program_indicators_data_value_url, session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS,isoDatePeriods ):
     
    
     period_list_daily = "20230514;20230513;20230512;20230511;20230510;20230509;20230508;20230507;20230506;20230505;20230504;20230503;20230502;20230501;20230430;20230429;20230428;20230427;20230426;20230425;20230424;20230423;20230422;20230421;20230420;20230419;20230418;20230417;20230416;20230415;20230414"
@@ -205,11 +322,21 @@ def get_program_indicators_data_values( program_indicators_data_value_url,sessio
     org_list = "op6sM00UM5R;NdWZGvjX3BN;op6sM00UM5R"
     pi_indicators_list = "K8VVrMcSAUD;K81oZQ4b5Vl;QwOHKYNmdN9;Tak313dv0CT;IfECSBYqrqV;eu9RAPEMXhb;BfoLPFMyQzkB;ragjEZ11Bti;FDxVW7nURcD;doyR9jQvv92;GkgzaLmrg5S;MzPenhNCmy2;ck9AtliGzns;KjbIihlYc5D;v6mPHFvH2Ho;npDd2ehR91M"
     
+    periods = quote(isoDatePeriods)
+    program_indicator_data_value_url = (
+        f"{program_indicators_data_value_url}"
+        f"?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}"
+        f"&dimension=dx:{program_indicator}"
+        f"&filter=pe:{periods}"
+        f"&displayProperty=NAME&outputIdScheme=UID"
+    )
+
     #https://tracker.hivaids.gov.np/save-child-2.27/api/analytics.json?dimension=ou:OU_GROUP-pW6owR4oRKb&dimension=dx:vcFk6C2BZCx&filter=pe:20230514;20230513;20230512;20230511;20230510;20230509;20230508;20230507;20230506;20230505;20230504;20230503;20230502;20230501;20230430;20230429;20230428;20230427;20230426;20230425;20230424;20230423;20230422;20230421;20230420;20230419;20230418;20230417;20230416;20230415;20230414&displayProperty=NAME&outputIdScheme=UID
-    program_indicator_data_value_url = f"{program_indicators_data_value_url}?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}&dimension=dx:{program_indicator}&filter=pe:{period_list_daily}&displayProperty=NAME&outputIdScheme=UID"
+    
+    #program_indicator_data_value_url = f"{program_indicators_data_value_url}?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}&dimension=dx:{program_indicator}&filter=pe:{isoDatePeriods}&displayProperty=NAME&outputIdScheme=UID"
 
     #print(program_indicator_data_value_url)
-    #print(f" program_indicator_data_value_url : {program_indicator_data_value_url}" )
+    #print(f"program_indicator_data_value_url : {program_indicator_data_value_url}" )
 
     
     response_pi_datavalues = session_get.get( program_indicator_data_value_url )
@@ -236,12 +363,11 @@ def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSe
 
         #print(f" DataValue created successfully : response . {response.json()} : response . {response.status_code}")
 
-        conflictsDetails   = response.json().get("response", {}).get("conflicts")
+        #conflictsDetails   = response.json().get("response", {}).get("conflicts")
         description   = response.json().get("response", {}).get("description")
         impCount = response.json().get("response", {}).get("importCount").get("imported")
         updateCount = response.json().get("response", {}).get("importCount").get("updated")
         ignoreCount = response.json().get("response", {}).get("importCount").get("ignored")
-
 
         #conflictsDetails   = response.json().get("conflicts",[])
         #description   = response.json().get("description", {})
@@ -250,8 +376,8 @@ def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSe
         #updateCount = response.json().get("importCount", {}).get("updated")
         #ignoreCount = response.json().get("importCount", {}).get("ignored")
 
-        print(f"DataValue created successfully. impCount : {impCount} . updateCount : {updateCount} . ignoreCount : {ignoreCount} . description : {description}")
-        logging.info(f"DataValue created successfully. impCount : {impCount} . updateCount : {updateCount} . ignoreCount: {ignoreCount} . description : {description}")
+        print(f"DataValue created successfully. importCount : {impCount}. updateCount : {updateCount}. ignoreCount : {ignoreCount}. description : {description}")
+        logging.info(f"DataValue created successfully. importCount : {impCount}. updateCount : {updateCount}. ignoreCount: {ignoreCount}. description : {description}")
         #logging.info(f"conflictsDetails : {conflictsDetails}")
         #print(f"conflictsDetails : {conflictsDetails}")
         #logging.info(f"DataValue created successfully : {response.text}")
@@ -264,8 +390,8 @@ def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSe
         updateCount = response.json().get("response", {}).get("importCount").get("updated")
         ignoreCount = response.json().get("response", {}).get("importCount").get("ignored")
         
-        print(f"DataValue created successfully. impCount : {impCount} . updateCount : {updateCount} . ignoreCount : {ignoreCount} . description : {description}")
-        logging.info(f"DataValue created successfully. impCount : {impCount} . updateCount : {updateCount} . ignoreCount: {ignoreCount} . description : {description}")
+        print(f"DataValue created successfully. impCount : {impCount}. updateCount : {updateCount}. ignoreCount : {ignoreCount}. description : {description}")
+        logging.info(f"DataValue created successfully. impCount : {impCount}. updateCount : {updateCount}. ignoreCount: {ignoreCount}. description : {description}")
         
         print(f"Failed to create dataValueSet. conflictsDetails: {conflictsDetails}")
         logging.info(f"conflictsDetails : {conflictsDetails}")
@@ -564,15 +690,16 @@ def sendEmail():
     
 
 
-    fromaddr = "dss.nipi@hispindia.org"
-
+    #fromaddr = "*******"
+    fromaddr = FROM_EMAIL_ADDR
     # list of email_id to send the mail
-    li = ["mithilesh.thakur@hispindia.org", "saurabh.leekha@hispindia.org","dpatankar@nipi-cure.org","mohinder.singh@hispindia.org"]
-    #li = ["mithilesh.thakur@hispindia.org"]
+    #li = ["mithilesh.thakur@hispindia.org", "saurabh.leekha@hispindia.org","dpatankar@nipi-cure.org","mohinder.singh@hispindia.org"]
+    #li = ["mithilesh.thakur@hispindia.org","sumit.tripathi@hispindia.org"]
+    li = ["mithilesh.thakur@hispindia.org"]
 
     for toaddr in li:
 
-        #toaddr = "mithilesh.thakur@hispindia.org"
+        #toaddr = "**********"
         
         # instance of MIMEMultipart 
         msg = MIMEMultipart() 
@@ -584,7 +711,7 @@ def sendEmail():
         msg['To'] = toaddr 
         
         # storing the subject  
-        msg['Subject'] = "ODK To DHIS2 data import log file"
+        msg['Subject'] = "Auto Sync ART data from hivtracker to ihmis log file"
         
         # string to store the body of the mail 
         #body = "Python Script test of the Mail"
@@ -593,15 +720,27 @@ def sendEmail():
         #updated_odk_api_url = f"{ODK_API_URL}?$filter=__system/submissionDate ge {today_date}"
         updated_odk_api_url = f"{today_date}"
 
-        body = f"ODK To DHIS2 DSS Child Health Program data import log file for the url { updated_odk_api_url }"
+        body = f"Auto Sync ART data from hivtracker to ihmis"
         
         # attach the body with the msg instance 
         msg.attach(MIMEText(body, 'plain')) 
         
         
         # open the file to be sent  
+
+        LOG_DIR = "logs"
+        PATTERN = "*_dataValueSet_post.log"
+
+        # Find latest matching log file
+        log_files = glob.glob(os.path.join(LOG_DIR, PATTERN))
+        if not log_files:
+            raise FileNotFoundError("No log files found")
+
+        latest_log = max(log_files, key=os.path.getmtime)
+
         filename = LOG_FILE
-        attachment = open(filename, "rb") 
+        #attachment = open(filename, "rb") 
+        attachment = open(latest_log, "rb") 
         
         # instance of MIMEBase and named as p 
         p = MIMEBase('application', 'octet-stream') 
@@ -624,9 +763,11 @@ def sendEmail():
             s.starttls() 
             
             # Authentication 
-            #s.login(fromaddr, "NIPIODKHispIndia@123")
-            s.login(fromaddr, "hvaoefwbpdvnsqts")
+            #s.login(fromaddr, "******")
+            #s.login(fromaddr, "********") ## set app password App Name Mail
+            s.login(fromaddr, FROM_EMAIL_PASSWORD)
             
+
             # Converts the Multipart msg into a string 
             text = msg.as_string() 
             

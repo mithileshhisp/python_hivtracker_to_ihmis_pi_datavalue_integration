@@ -14,13 +14,18 @@ import json
 from datetime import datetime,date
 import nepali_datetime
 from utils import (
-    configure_logging,
+    configure_logging_for_app,
     log_info,log_error,get_program_indicator_list,get_org_unit_list,
     get_aggregated_de_from_indicators,get_orgunit_grp_member,
     get_program_indicators_data_values, push_dataValueSet_in_dhis2,
     get_bs_month_start_end,get_between_dates_iso,sendEmail
    
 )
+
+import logging
+logger = logging.getLogger()   # use root logger
+
+logger.info("Running aggregation step 1")
 
 
 DHIS2_GET_API_URL = os.getenv("DHIS2_GET_API_URL")
@@ -75,9 +80,9 @@ session_post.auth = (DHIS2_POST_USER, DHIS2_POST_PASSWORD)
 #session_get.verify = False
 
 
-def main_with_logger():
+def main_with_logger_flask():
 
-    configure_logging()
+    configure_logging_for_app
 
     session_get = requests.Session()
     session_get.auth = (DHIS2_GET_USER, DHIS2_GET_PASSWORD)
@@ -199,23 +204,24 @@ def main_with_logger():
         #print( f" dataValueSet_payload size . { len(dataValueSet_payload) }" )
         #push_dataValueSet_in_dhis2( dataValueSet_payload)
 
-if __name__ == "__main__":
 
-    event_push_count = 0
-    null_patient_id_count = 0
-    total_patient_count = 0
-
-    #main()
-    main_with_logger()
-    current_time_end = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    print( f"pushing to IHMIS Aggregated Data Value process finished . { current_time_end }" )
-    log_info(f"pushing Tracker event data in DHIS finished . { current_time_end }")
-
+def run_job():
     try:
-        sendEmail()
+        main_with_logger_flask()
+        current_time_end = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        print( f"pushing to IHMIS Aggregated Data Value process finished . { current_time_end }" )
+        log_info(f"pushing Tracker event data in DHIS finished . { current_time_end }")
+
+        try:
+            sendEmail()
+        except Exception as e:
+            log_error(f"Email failed: {e}")
+        return True, "Job completed successfully"
     except Exception as e:
-        log_error(f"Email failed: {e}")
+        log_error(str(e))
+        return False, str(e)
+
 
 
     #sendEmail()
