@@ -5,17 +5,25 @@ Python Script to Auto sync HIVTRACKER  programindicators to IHMIS aggregated dat
 ## install
 
 pip install flask requests python-dotenv
+
 pip install flask-cors
 
 pip install python-dotenv
+
 pip install psycopg2-binary
+
 pip install clickhouse-connect
 
 pip install nepali-date_converter
+
 pip install npdatetime
+
 pip install datetime
 
 #https://pypi.org/project/nepali-calendar-utils/
+
 pip install nepali-calendar-utils
+
 pip install nepali
+
 pip install nepali-datetime
