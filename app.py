@@ -46,6 +46,48 @@ def health():
         "service": "IHMIS Aggregation Service"
     })
 
+
+@app.route("/run", methods=["POST"])
+def run():
+    if job_status["running"]:
+        return jsonify({
+            "status": "RUNNING",
+            "message": "Job already in progress"
+        }), 409
+
+    # 🔹 Create new log file per run
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file = os.path.join(LOG_DIR, f"{timestamp}_dataValueSet_post.log")
+
+    # 🔹 Reconfigure logging for this run
+    configure_logging_for_app(log_file)
+
+    # 🔹 Clear old UI logs
+    while not log_queue.empty():
+        log_queue.get()
+
+    job_status["running"] = True
+    job_status["message"] = "Job started"
+    job_status["lastRunStart"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def background_job():
+        success, msg = run_job()
+
+        cleanup_old_logs()
+        cleanup_old_logs_keep_last_n(10)
+
+        job_status["running"] = False
+        job_status["message"] = msg
+        job_status["lastRunEnd"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    executor.submit(background_job)
+
+    return jsonify({
+        "status": "STARTED",
+        "message": "Aggregation job started"
+    })
+
+'''
 @app.route("/run", methods=["POST"])
 def run():
     if job_status["running"]:
@@ -84,10 +126,12 @@ def run():
         "status": "STARTED",
         "message": "Aggregation job started"
     })
+'''
 
 @app.route("/status", methods=["GET"])
 def status():
     return jsonify(job_status)
+
 
 @app.route("/logs", methods=["GET"])
 def get_logs():
@@ -96,11 +140,13 @@ def get_logs():
         logs.append(log_queue.get())
     return jsonify(logs)
 
+
 @app.route("/test-log", methods=["GET"])
 def test_log():
     import logging
     logging.info("Test log from Flask route")
     return jsonify({"ok": True})
+
 
 #Download latest log file (Flask)
 @app.route("/logs/latest", methods=["GET"])
@@ -120,6 +166,8 @@ def download_latest_log():
         download_name=os.path.basename(latest_log),
         mimetype="text/plain"
     )
+
+
 # log history
 @app.route("/logs/<filename>", methods=["GET"])
 def download_log(filename):
@@ -133,6 +181,8 @@ def download_log(filename):
         as_attachment=True,
         mimetype="text/plain"
     )
+
+
 
 @app.route("/logs/list", methods=["GET"])
 def list_logs():

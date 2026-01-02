@@ -49,12 +49,46 @@ import queue
 
 log_queue = queue.Queue()
 
-class QueueLogHandler(logging.Handler):
+class QueueHandler(logging.Handler):
     def emit(self, record):
         log_queue.put(self.format(record))
 
 
+def configure_logging_for_app(log_file=None):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # 🔴 REMOVE OLD HANDLERS (THIS IS KEY)
+    for h in list(logger.handlers):
+        logger.removeHandler(h)
+
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(message)s"
+    )
+
+    # Console
+    console  = logging.StreamHandler()
+    console .setFormatter(formatter)
+    logger.addHandler(console)
+
+    # Queue (for UI)
+    qh = QueueHandler()
+    qh.setFormatter(formatter)
+    logger.addHandler(qh)
+
+    # File (ONLY if provided)
+    if log_file:
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        fh = logging.FileHandler(log_file, mode="w")
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+
+
+'''
 def configure_logging_for_app():
+
+    
     import os
     from constants import LOG_FILE
 
@@ -84,6 +118,9 @@ def configure_logging_for_app():
     root.addHandler(queue_handler)
 
     logging.info("Logging initialized for Flask app")
+
+'''
+
 
 
 
@@ -690,7 +727,7 @@ def sendEmail():
     
 
 
-    #fromaddr = "*******"
+    #fromaddr = "dss.nipi@hispindia.org"
     fromaddr = FROM_EMAIL_ADDR
     # list of email_id to send the mail
     #li = ["mithilesh.thakur@hispindia.org", "saurabh.leekha@hispindia.org","dpatankar@nipi-cure.org","mohinder.singh@hispindia.org"]
@@ -699,7 +736,7 @@ def sendEmail():
 
     for toaddr in li:
 
-        #toaddr = "**********"
+        #toaddr = "mithilesh.thakur@hispindia.org"
         
         # instance of MIMEMultipart 
         msg = MIMEMultipart() 
@@ -763,8 +800,8 @@ def sendEmail():
             s.starttls() 
             
             # Authentication 
-            #s.login(fromaddr, "******")
-            #s.login(fromaddr, "********") ## set app password App Name Mail
+            #s.login(fromaddr, "NIPIODKHispIndia@123")
+            #s.login(fromaddr, "dztnzuvhbxlauwxy") ## set app password App Name Mail as on 22/12/2025
             s.login(fromaddr, FROM_EMAIL_PASSWORD)
             
 

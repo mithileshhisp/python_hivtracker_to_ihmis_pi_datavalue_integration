@@ -107,8 +107,8 @@ def main_with_logger_flask():
     print(f"Current Nepali month name: {nepali_current_month_name}")
 
     # Example: current nelai month to month startdate and enddate
-    #start, end = get_bs_month_start_end(nepali_current_year, nepali_current_month_number)
-    start, end = get_bs_month_start_end(2082, 1)
+    start, end = get_bs_month_start_end(nepali_current_year, nepali_current_month_number)
+    #start, end = get_bs_month_start_end(2082, 1)
 
     print("Start BS:", start)
     print("End BS:", end)
