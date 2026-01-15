@@ -115,20 +115,63 @@ def main_with_logger_flask():
     print("Start AD:", start.to_datetime_date())
     print("End AD:", end.to_datetime_date())
 
-    # Convert date objects to string
-
-
     current_nepali_monthly_period = start.strftime("%Y-%m-%d").split("-")[0] + "" + start.strftime("%Y-%m-%d").split("-")[1]
     
     print(f"current_nepali_monthly_period {current_nepali_monthly_period}")
     log_info(f"current_nepali_monthly_period {current_nepali_monthly_period}")
 
+    # Convert date objects to string
+    #Previous month calculation (IMPORTANT PART)
+
+    if nepali_current_month_number == 1:
+        prev_nepali_year = nepali_current_year - 1
+        prev_nepali_month_number = 12
+    else:
+        prev_nepali_year = nepali_current_year
+        prev_nepali_month_number = nepali_current_month_number - 1
+
+    # Create a date in previous month to extract name
+    prev_nepali_date = nepali_datetime.date(
+        prev_nepali_year,
+        prev_nepali_month_number,
+        1
+    )
+
+    prev_nepali_month_name = prev_nepali_date.strftime("%B")
+    print(f"Previous Nepali Year: {prev_nepali_year}")
+    print(f"Previous Nepali month number: {prev_nepali_month_number}")
+    print(f"Previous Nepali month name: {prev_nepali_month_name}")
+
+    #Previous Nepali month name
+    #Previous month start & end date (BS + AD)
+    previous_start, previous_end = get_bs_month_start_end(
+        prev_nepali_year,
+        prev_nepali_month_number
+    )
+
+    print("Previous Month Start BS:", previous_start)
+    print("Previous Month End BS:", previous_end)
+    print("Previous Month Start AD:", previous_start.to_datetime_date())
+    print("Previous Month End AD:", previous_end.to_datetime_date())
+
+
+    previous_nepali_monthly_period = previous_start.strftime("%Y-%m-%d").split("-")[0] + "" + previous_start.strftime("%Y-%m-%d").split("-")[1]
+    
+    print(f"previous_nepali_monthly_period {previous_nepali_monthly_period}")
+    log_info(f"previous_nepali_monthly_period {previous_nepali_monthly_period}")
+
     # get all dates between startdate,enddate
     #dates = get_between_dates("2023-01-28", "2023-02-03")
-    isoDatePeriods = get_between_dates_iso(start.to_datetime_date(), end.to_datetime_date())
-    print("dates:" ,isoDatePeriods)
+
+    #isoDatePeriods = get_between_dates_iso(start.to_datetime_date(), end.to_datetime_date())
     #print(f"isoDatePeriods {len(isoDatePeriods)}")
     #log_info(f"isoDatePeriods {len(isoDatePeriods)}")
+
+    previousIsoDatePeriods = get_between_dates_iso(previous_start.to_datetime_date(), previous_end.to_datetime_date())
+    print(" previous dates:" ,previousIsoDatePeriods)
+    print(f"previousIsoDatePeriods {len(previousIsoDatePeriods)}")
+    log_info(f"previousIsoDatePeriods {len(previousIsoDatePeriods)}")
+
 
     current_time_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print( f"pushing to IHMIS Aggregated Data Value process start . { current_time_start }" )
@@ -168,7 +211,7 @@ def main_with_logger_flask():
                 #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id']}")
                 #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']}")
                 
-                program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, isoDatePeriods)
+                program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, previousIsoDatePeriods)
                 print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id'] }, PI DataValueSize {len(program_indicators_data_values) }")
                 log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']} , PI DataValueSize {len(program_indicators_data_values) } ")
                 
@@ -186,7 +229,7 @@ def main_with_logger_flask():
                                 "categoryOptionCombo": aggregated_de_dict[pi_dataValue[0]].split("-")[1],
                                 "attributeOptionCombo":IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO,
                                 "value": int(float(pi_dataValue[2])),
-                                "period": current_nepali_monthly_period,
+                                "period": previous_nepali_monthly_period,
                                 "orgUnit": orgUnit_code_uid_dict[pi_dataValue[1]] ## use orgUnit code for HMIS instance
                                 #"orgUnit": pi_dataValue[1] ## use orgUnit uid for HMIS instance uid same in both instance
                             }

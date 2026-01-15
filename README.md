@@ -6,6 +6,10 @@ Python Script to Auto sync HIVTRACKER  programindicators to IHMIS aggregated dat
 
 pip install flask requests python-dotenv
 
+pip install --upgrade certifi
+
+pip install --upgrade requests certifi urllib3
+
 pip install flask-cors
 
 pip install python-dotenv

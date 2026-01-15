@@ -3,6 +3,9 @@
 import requests
 import logging
 
+import certifi  ## for post data in hmis production certificate issue
+
+
 import json
 import smtplib
 from email.mime.multipart import MIMEMultipart 
@@ -190,6 +193,7 @@ def get_program_indicator_list( program_indicators_api_url,session_get,META_ATTR
     ]
 
     #https://tracker.hivaids.gov.np/save-child-2.27/api/programIndicators?fields=id,name,attributeValues&filter=attributeValues.attribute.id:eq:tjqWoZ59saL&paging=false
+    
     url_with_filters = f"{program_indicators_api_url}?fields=id,name,attributeValues&filter={'&filter='.join(filters)}"
     response_program_indicators = session_get.get (url_with_filters )
    
@@ -221,7 +225,8 @@ def get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT
         f"attributeValues.attribute.id:eq:{META_ATTRIBUTE_HMIS_ORG_UNIT_CODE}&paging=false"
     ]
 
-    #https://tracker.hivaids.gov.np/save-child-2.27/https://tracker.hivaids.gov.np/save-child-2.27/api/organisationUnits?fields=id,name,attributeValues&filter=attributeValues.attribute.id:eq:nEIktLQW451&paging=false
+
+    #https://tracker.hivaids.gov.np/save-child-2.27/api/organisationUnits?fields=id,name,attributeValues&filter=attributeValues.attribute.id:eq:nEIktLQW451&paging=false
     org_unit_url_with_filters = f"{org_unit_api_url}?fields=id,name,attributeValues&filter={'&filter='.join(filters)}"
 
     #print(f"org_unit_url_with_filters : {org_unit_url_with_filters}")
@@ -351,7 +356,7 @@ def get_orgunit_grp_member( orgunit_grp_api_url,session_get, ORG_UNIT_GROUP_ART_
     return orgunit_grp_member_list
 
 
-def get_program_indicators_data_values( program_indicators_data_value_url, session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS,isoDatePeriods ):
+def get_program_indicators_data_values( program_indicators_data_value_url, session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS, isoDatePeriods, ART_CENTER ):
     
    
     period_list_daily = "20230514;20230513;20230512;20230511;20230510;20230509;20230508;20230507;20230506;20230505;20230504;20230503;20230502;20230501;20230430;20230429;20230428;20230427;20230426;20230425;20230424;20230423;20230422;20230421;20230420;20230419;20230418;20230417;20230416;20230415;20230414"
@@ -360,6 +365,19 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
     pi_indicators_list = "K8VVrMcSAUD;K81oZQ4b5Vl;QwOHKYNmdN9;Tak313dv0CT;IfECSBYqrqV;eu9RAPEMXhb;BfoLPFMyQzkB;ragjEZ11Bti;FDxVW7nURcD;doyR9jQvv92;GkgzaLmrg5S;MzPenhNCmy2;ck9AtliGzns;KjbIihlYc5D;v6mPHFvH2Ho;npDd2ehR91M"
     
     periods = quote(isoDatePeriods)
+
+    
+    artCenter = "sTpP9XtNNIq"
+    program_indicator_data_value_url = (
+        f"{program_indicators_data_value_url}"
+        f"?dimension=ou:{ART_CENTER}"
+        f"&dimension=dx:{program_indicator}"
+        f"&filter=pe:{periods}"
+        f"&displayProperty=NAME&outputIdScheme=UID"
+    )
+    
+    ### for ou GROUP
+    '''
     program_indicator_data_value_url = (
         f"{program_indicators_data_value_url}"
         f"?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}"
@@ -367,7 +385,7 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
         f"&filter=pe:{periods}"
         f"&displayProperty=NAME&outputIdScheme=UID"
     )
-
+    '''
     #https://tracker.hivaids.gov.np/save-child-2.27/api/analytics.json?dimension=ou:OU_GROUP-pW6owR4oRKb&dimension=dx:vcFk6C2BZCx&filter=pe:20230514;20230513;20230512;20230511;20230510;20230509;20230508;20230507;20230506;20230505;20230504;20230503;20230502;20230501;20230430;20230429;20230428;20230427;20230426;20230425;20230424;20230423;20230422;20230421;20230420;20230419;20230418;20230417;20230416;20230415;20230414&displayProperty=NAME&outputIdScheme=UID
     
     #program_indicator_data_value_url = f"{program_indicators_data_value_url}?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}&dimension=dx:{program_indicator}&filter=pe:{isoDatePeriods}&displayProperty=NAME&outputIdScheme=UID"
@@ -388,9 +406,12 @@ def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSe
     #print(f"dataValueSet_payload : {json.dumps(dataValueSet_payload)}")
     #logging.info(f"dataValueSet_payload : {json.dumps(dataValueSet_payload)}")
 
+    #session_post = requests.Session()
+    #session_post.verify = certifi.where()
+    #verify=False,
     response = session_post.post(
         dataValueSet_endPoint,
-        data=json.dumps(dataValueSet_payload),
+        data=json.dumps(dataValueSet_payload), verify=False,
         headers={"Content-Type": "application/json"}
     )
     conflictsDetails = ""
@@ -731,8 +752,8 @@ def sendEmail():
     fromaddr = FROM_EMAIL_ADDR
     # list of email_id to send the mail
     #li = ["mithilesh.thakur@hispindia.org", "saurabh.leekha@hispindia.org","dpatankar@nipi-cure.org","mohinder.singh@hispindia.org"]
-    #li = ["mithilesh.thakur@hispindia.org","sumit.tripathi@hispindia.org"]
-    li = ["mithilesh.thakur@hispindia.org"]
+    li = ["mithilesh.thakur@hispindia.org","sumit.tripathi@hispindia.org","RKonda@fhi360.org"]
+    #li = ["mithilesh.thakur@hispindia.org"]
 
     for toaddr in li:
 

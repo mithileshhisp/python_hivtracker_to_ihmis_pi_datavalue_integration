@@ -2,17 +2,27 @@
 #pip install python-dotenv
 #pip install psycopg2-binary
 #pip install clickhouse-connect
+#pip install --upgrade certifi
+#pip install --upgrade requests certifi urllib3 ## for post data in hmis production certificate issue
 
+import urllib3 ## for disable warning of Certificate
+urllib3.disable_warnings() ## for disable warning of Certificate
+
+import ssl
+#import requests
+
+from concurrent.futures import ThreadPoolExecutor
+import requests
+import certifi  ## for post data in hmis production certificate issue
+import json
+from datetime import datetime,date
+import nepali_datetime
 # main.py
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
-from concurrent.futures import ThreadPoolExecutor
-import requests
-import json
-from datetime import datetime,date
-import nepali_datetime
+
 from utils import (
     configure_logging,
     log_info,log_error,get_program_indicator_list,get_org_unit_list,
@@ -22,6 +32,8 @@ from utils import (
    
 )
 
+#print("OpenSSL version:", ssl.OPENSSL_VERSION)
+#print("Certifi CA bundle:", requests.certs.where())
 
 DHIS2_GET_API_URL = os.getenv("DHIS2_GET_API_URL")
 DHIS2_GET_USER = os.getenv("DHIS2_GET_USER")
@@ -36,6 +48,8 @@ META_ATTRIBUTE_HMIS_ORG_UNIT_CODE = os.getenv("META_ATTRIBUTE_HMIS_ORG_UNIT_CODE
 IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO = os.getenv("IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO")
 
 ORG_UNIT_GROUP_ART_CENTERS = os.getenv("ORG_UNIT_GROUP_ART_CENTERS")
+ART_CENTER = os.getenv("ART_CENTER")
+
 PI_GROUP_ART_REPORT = os.getenv("PI_GROUP_ART_REPORT")
 HIV_PROGRAM_ID = os.getenv("HIV_PROGRAM_ID")
 
@@ -85,6 +99,9 @@ def main_with_logger():
     session_post = requests.Session()
     session_post.auth = (DHIS2_POST_USER, DHIS2_POST_PASSWORD)
 
+    #session = requests.Session()
+    #session_post.verify = certifi.where()
+
     ## current nepali date/month/period
     # Get the current Nepali date and time
     current_nepali_datetime = nepali_datetime.datetime.now()
@@ -96,6 +113,8 @@ def main_with_logger():
 
     # Get the month name (optional, if you need the name instead of the number)
     nepali_current_month_name = current_nepali_datetime.strftime("%B")
+
+    #print(certifi.where()) 
 
     print(f"Current Nepali Year: {nepali_current_year}")
     print(f"Current Nepali month number: {nepali_current_month_number}")
@@ -110,26 +129,69 @@ def main_with_logger():
     print("Start AD:", start.to_datetime_date())
     print("End AD:", end.to_datetime_date())
 
-    # Convert date objects to string
-
-
     current_nepali_monthly_period = start.strftime("%Y-%m-%d").split("-")[0] + "" + start.strftime("%Y-%m-%d").split("-")[1]
     
     print(f"current_nepali_monthly_period {current_nepali_monthly_period}")
     log_info(f"current_nepali_monthly_period {current_nepali_monthly_period}")
 
+    # Convert date objects to string
+    #Previous month calculation (IMPORTANT PART)
+    
+    if nepali_current_month_number == 1:
+        prev_nepali_year = nepali_current_year - 1
+        prev_nepali_month_number = 12
+    else:
+        prev_nepali_year = nepali_current_year
+        prev_nepali_month_number = nepali_current_month_number - 1
+
+    # Create a date in previous month to extract name
+    #Previous Nepali month name
+    prev_nepali_date = nepali_datetime.date(
+        prev_nepali_year,
+        prev_nepali_month_number,
+        1
+    )
+
+    prev_nepali_month_name = prev_nepali_date.strftime("%B")
+
+    print(f"Previous Nepali Year: {prev_nepali_year}")
+    print(f"Previous Nepali month number: {prev_nepali_month_number}")
+    print(f"Previous Nepali month name: {prev_nepali_month_name}")
+
+    #Previous Nepali month name
+    #Previous month start & end date (BS + AD)
+    previous_start, previous_end = get_bs_month_start_end(
+        prev_nepali_year,
+        prev_nepali_month_number
+    )
+
+    print("Previous Month Start BS:", previous_start)
+    print("Previous Month End BS:", previous_end)
+    print("Previous Month Start AD:", previous_start.to_datetime_date())
+    print("Previous Month End AD:", previous_end.to_datetime_date())
+
+
+    previous_nepali_monthly_period = previous_start.strftime("%Y-%m-%d").split("-")[0] + "" + previous_start.strftime("%Y-%m-%d").split("-")[1]
+    print(f"previous_nepali_monthly_period {previous_nepali_monthly_period}")
+    log_info(f"previous_nepali_monthly_period {previous_nepali_monthly_period}")
+
     # get all dates between startdate,enddate
     #dates = get_between_dates("2023-01-28", "2023-02-03")
-    isoDatePeriods = get_between_dates_iso(start.to_datetime_date(), end.to_datetime_date())
-    print("dates:" ,isoDatePeriods)
+
+    #isoDatePeriods = get_between_dates_iso(start.to_datetime_date(), end.to_datetime_date())
     #print(f"isoDatePeriods {len(isoDatePeriods)}")
     #log_info(f"isoDatePeriods {len(isoDatePeriods)}")
+
+    previousIsoDatePeriods = get_between_dates_iso(previous_start.to_datetime_date(), previous_end.to_datetime_date())
+    print(" previous dates:" ,previousIsoDatePeriods)
+    print(f"previousIsoDatePeriods {len(previousIsoDatePeriods)}")
+    log_info(f"previousIsoDatePeriods {len(previousIsoDatePeriods)}")
 
     current_time_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print( f"pushing to IHMIS Aggregated Data Value process start . { current_time_start }" )
     log_info(f"pushing to IHMIS Aggregated Data Value process start  . { current_time_start }")
     
-    program_indicator_list = get_program_indicator_list( program_indicators_api_url,session_get,META_ATTRIBUTE_PI_TO_AGGREGATE_DE )
+    program_indicator_list = get_program_indicator_list( program_indicators_api_url, session_get,META_ATTRIBUTE_PI_TO_AGGREGATE_DE )
     log_info(f"program_indicator_size {len(program_indicator_list)}")
     print(f"program_indicator_size {len(program_indicator_list)}")
 
@@ -156,6 +218,7 @@ def main_with_logger():
     #program_indicator = "vcFk6C2BZCx;UjYFHNozrnW;AM2UlJTIv3T;h6UU7fJNkez;YKKQmj4ENTy;YTyfolsnUhh;xPbkfVnHnAb;VaYBFHfr5vB;OIUpE0k1Fzz;jAyHNleIeUF;ht5UD6UweLi"
     #program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url,session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS)
 
+    
     tempDataValues = list()
     if aggregated_de_dict:
         if program_indicator_list:
@@ -163,7 +226,7 @@ def main_with_logger():
                 #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id']}")
                 #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']}")
                 
-                program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, isoDatePeriods)
+                program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, previousIsoDatePeriods, ART_CENTER)
                 print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id'] }, PI DataValueSize {len(program_indicators_data_values) }")
                 log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']} , PI DataValueSize {len(program_indicators_data_values) } ")
                 
@@ -181,7 +244,7 @@ def main_with_logger():
                                 "categoryOptionCombo": aggregated_de_dict[pi_dataValue[0]].split("-")[1],
                                 "attributeOptionCombo":IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO,
                                 "value": int(float(pi_dataValue[2])),
-                                "period": current_nepali_monthly_period,
+                                "period": previous_nepali_monthly_period,
                                 "orgUnit": orgUnit_code_uid_dict[pi_dataValue[1]] ## use orgUnit code for HMIS instance
                                 #"orgUnit": pi_dataValue[1] ## use orgUnit uid for HMIS instance uid same in both instance
                             }
@@ -214,6 +277,7 @@ if __name__ == "__main__":
 
     try:
         sendEmail()
+        #print( f"pushing to IHMIS Aggregated Data Value process finished . { current_time_end }" )
     except Exception as e:
         log_error(f"Email failed: {e}")
 
