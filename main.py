@@ -222,14 +222,43 @@ def main_with_logger():
     tempDataValues = list()
     if aggregated_de_dict:
         if program_indicator_list:
-            for program_indicator in program_indicator_list:
+            total_pi_count = 0
+            for index, program_indicator in enumerate(program_indicator_list, start=1):
+            #for program_indicator in program_indicator_list:
                 #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id']}")
                 #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']}")
                 
-                program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, previousIsoDatePeriods, ART_CENTER)
-                print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id'] }, PI DataValueSize {len(program_indicators_data_values) }")
-                log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']} , PI DataValueSize {len(program_indicators_data_values) } ")
+                #program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, previousIsoDatePeriods, ART_CENTER)
                 
+                program_indicators_data_values = get_program_indicators_data_values(
+                    program_indicators_data_value_url,
+                    session_get,
+                    program_indicator['id'],
+                    ORG_UNIT_GROUP_ART_CENTERS,
+                    previousIsoDatePeriods,
+                    ART_CENTER
+                )
+                
+                #pi_count = len(program_indicators_data_values)
+                #total_pi_count += pi_count   # 🔹 running total
+
+                #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id'] }, PI DataValueSize {len(program_indicators_data_values) }")
+                #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']} , PI DataValueSize {len(program_indicators_data_values) } ")
+
+                print(
+                    f"SL_NO {index}, "
+                    f"program_indicator_name {program_indicator['name']}, "
+                    f"program_indicator_id {program_indicator['id']}, "
+                    f"PI DataValueSize {len(program_indicators_data_values)}"
+                )
+
+                log_info(
+                    f"SL_NO {index}, "
+                    f"program_indicator_name {program_indicator['name']}, "
+                    f"program_indicator_id {program_indicator['id']}, "
+                    f"PI DataValueSize {len(program_indicators_data_values)}"
+                )
+
                 #print(f"program_indicators_data_values size {len(program_indicators_data_values)}")
                 #log_info(f"program_indicators_data_values size {len(program_indicators_data_values)}")
                 tempDataValues = list()

@@ -58,6 +58,8 @@ class QueueHandler(logging.Handler):
 
 
 def configure_logging_for_app(log_file=None):
+    
+    print(f"inside configure_logging_for_app")
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
@@ -123,8 +125,6 @@ def configure_logging_for_app():
     logging.info("Logging initialized for Flask app")
 
 '''
-
-
 
 
 def configure_logging():
@@ -368,6 +368,7 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
 
     
     artCenter = "sTpP9XtNNIq"
+    '''
     program_indicator_data_value_url = (
         f"{program_indicators_data_value_url}"
         f"?dimension=ou:{ART_CENTER}"
@@ -375,9 +376,9 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
         f"&filter=pe:{periods}"
         f"&displayProperty=NAME&outputIdScheme=UID"
     )
-    
-    ### for ou GROUP
     '''
+    ### for ou GROUP
+    
     program_indicator_data_value_url = (
         f"{program_indicators_data_value_url}"
         f"?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}"
@@ -385,7 +386,7 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
         f"&filter=pe:{periods}"
         f"&displayProperty=NAME&outputIdScheme=UID"
     )
-    '''
+    
     #https://tracker.hivaids.gov.np/save-child-2.27/api/analytics.json?dimension=ou:OU_GROUP-pW6owR4oRKb&dimension=dx:vcFk6C2BZCx&filter=pe:20230514;20230513;20230512;20230511;20230510;20230509;20230508;20230507;20230506;20230505;20230504;20230503;20230502;20230501;20230430;20230429;20230428;20230427;20230426;20230425;20230424;20230423;20230422;20230421;20230420;20230419;20230418;20230417;20230416;20230415;20230414&displayProperty=NAME&outputIdScheme=UID
     
     #program_indicator_data_value_url = f"{program_indicators_data_value_url}?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}&dimension=dx:{program_indicator}&filter=pe:{isoDatePeriods}&displayProperty=NAME&outputIdScheme=UID"
@@ -752,8 +753,8 @@ def sendEmail():
     fromaddr = FROM_EMAIL_ADDR
     # list of email_id to send the mail
     #li = ["mithilesh.thakur@hispindia.org", "saurabh.leekha@hispindia.org","dpatankar@nipi-cure.org","mohinder.singh@hispindia.org"]
-    li = ["mithilesh.thakur@hispindia.org","sumit.tripathi@hispindia.org","RKonda@fhi360.org"]
-    #li = ["mithilesh.thakur@hispindia.org"]
+    #li = ["mithilesh.thakur@hispindia.org","sumit.tripathi@hispindia.org","RKonda@fhi360.org"]
+    li = ["mithilesh.thakur@hispindia.org"]
 
     for toaddr in li:
 
