@@ -317,7 +317,7 @@ def get_aggregated_de_from_indicators( program_indicators_api_url,session_get, M
 def get_orgunit_grp_member( orgunit_grp_api_url,session_get, ORG_UNIT_GROUP_ART_CENTERS ):
     
     orgunits = list()
-   
+    orgunit_grp_member_list = list()
     url_with_filters = f"{orgunit_grp_api_url}/{ORG_UNIT_GROUP_ART_CENTERS}.json?fields=id,name,organisationUnits[id,name]&paging=false"
 
     #print(f"url_with_filters : {url_with_filters}")
@@ -356,6 +356,68 @@ def get_orgunit_grp_member( orgunit_grp_api_url,session_get, ORG_UNIT_GROUP_ART_
     return orgunit_grp_member_list
 
 
+  
+#from urllib.parse import quote
+
+def get_program_indicators_data_values(
+        program_indicators_data_value_url,
+        session_get,
+        program_indicator,
+        ORG_UNIT_GROUP_ART_CENTERS,
+        isoDatePeriods,
+        ART_CENTER
+):
+
+    '''
+    periods = quote(isoDatePeriods)
+
+    if ART_CENTER:
+        program_indicator_data_value_url = (
+            f"{program_indicators_data_value_url}"
+            f"?dimension=ou:{ART_CENTER}"
+            f"&dimension=dx:{program_indicator}"
+            f"&filter=pe:{periods}"
+            f"&displayProperty=NAME"
+            f"&outputIdScheme=UID"
+        )
+
+    elif ORG_UNIT_GROUP_ART_CENTERS:
+        program_indicator_data_value_url = (
+            f"{program_indicators_data_value_url}"
+            f"?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}"
+            f"&dimension=dx:{program_indicator}"
+            f"&filter=pe:{periods}"
+            f"&displayProperty=NAME"
+            f"&outputIdScheme=UID"
+        )
+
+    else:
+        return []
+    '''
+    params = {
+        "dimension": [
+            f"ou:{ART_CENTER}" if ART_CENTER else f"ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}",
+            f"dx:{program_indicator}"
+        ],
+        "filter": f"pe:{isoDatePeriods}",
+        "displayProperty": "NAME",
+        "outputIdScheme": "UID"
+    }
+
+    response = session_get.get(program_indicators_data_value_url, params=params)
+
+    #response = session_get.get(program_indicator_data_value_url)
+
+    if response.status_code == 200:
+        return response.json().get("rows", [])
+
+    print(f"Error: {response.status_code}")
+    print(response.text)
+    log_info(f"response {response.text}")
+    return []
+
+
+'''
 def get_program_indicators_data_values( program_indicators_data_value_url, session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS, isoDatePeriods, ART_CENTER ):
     
    
@@ -365,28 +427,30 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
     pi_indicators_list = "K8VVrMcSAUD;K81oZQ4b5Vl;QwOHKYNmdN9;Tak313dv0CT;IfECSBYqrqV;eu9RAPEMXhb;BfoLPFMyQzkB;ragjEZ11Bti;FDxVW7nURcD;doyR9jQvv92;GkgzaLmrg5S;MzPenhNCmy2;ck9AtliGzns;KjbIihlYc5D;v6mPHFvH2Ho;npDd2ehR91M"
     
     periods = quote(isoDatePeriods)
-
-    
-    artCenter = "sTpP9XtNNIq"
-    '''
-    program_indicator_data_value_url = (
-        f"{program_indicators_data_value_url}"
-        f"?dimension=ou:{ART_CENTER}"
-        f"&dimension=dx:{program_indicator}"
-        f"&filter=pe:{periods}"
-        f"&displayProperty=NAME&outputIdScheme=UID"
-    )
-    '''
+    program_indicator_data_value_url = ""
+    if ART_CENTER:
+        program_indicator_data_value_url = (
+            f"{program_indicators_data_value_url}"
+            f"?dimension=ou:{ART_CENTER}"
+            f"&dimension=dx:{program_indicator}"
+            f"&filter=pe:{periods}"
+            f"&displayProperty=NAME&outputIdScheme=UID"
+        )
+    elif ORG_UNIT_GROUP_ART_CENTERS:
     ### for ou GROUP
     
-    program_indicator_data_value_url = (
-        f"{program_indicators_data_value_url}"
-        f"?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}"
-        f"&dimension=dx:{program_indicator}"
-        f"&filter=pe:{periods}"
-        f"&displayProperty=NAME&outputIdScheme=UID"
-    )
+        program_indicator_data_value_url = (
+            f"{program_indicators_data_value_url}"
+            f"?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}"
+            f"&dimension=dx:{program_indicator}"
+            f"&filter=pe:{periods}"
+            f"&displayProperty=NAME&outputIdScheme=UID"
+        )
     
+    else:
+        #raise ValueError("Either ART_CENTER or ORG_UNIT_GROUP_ART_CENTERS must be provided.")
+        return []
+        
     #https://tracker.hivaids.gov.np/save-child-2.27/api/analytics.json?dimension=ou:OU_GROUP-pW6owR4oRKb&dimension=dx:vcFk6C2BZCx&filter=pe:20230514;20230513;20230512;20230511;20230510;20230509;20230508;20230507;20230506;20230505;20230504;20230503;20230502;20230501;20230430;20230429;20230428;20230427;20230426;20230425;20230424;20230423;20230422;20230421;20230420;20230419;20230418;20230417;20230416;20230415;20230414&displayProperty=NAME&outputIdScheme=UID
     
     #program_indicator_data_value_url = f"{program_indicators_data_value_url}?dimension=ou:OU_GROUP-{ORG_UNIT_GROUP_ART_CENTERS}&dimension=dx:{program_indicator}&filter=pe:{isoDatePeriods}&displayProperty=NAME&outputIdScheme=UID"
@@ -402,7 +466,7 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
         return pi_dataValues 
     else:
         return []
-
+'''
 def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload ):
     #print(f"dataValueSet_payload : {json.dumps(dataValueSet_payload)}")
     #logging.info(f"dataValueSet_payload : {json.dumps(dataValueSet_payload)}")

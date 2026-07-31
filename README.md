@@ -31,3 +31,27 @@ pip install nepali-calendar-utils
 pip install nepali
 
 pip install nepali-datetime
+
+
+-- 
+sudo apt update
+
+sudo apt install python3-full python3-venv -y
+
+-- Create virtual environment
+
+cd /home/mithilesh/climet_data_exchange
+
+python3 -m venv venv
+
+-- Activate it
+
+source venv/bin/activate
+
+then
+
+pip install nepali-datetime
+
+pip install --upgrade requests certifi urllib3
+
+pip install python-dotenv

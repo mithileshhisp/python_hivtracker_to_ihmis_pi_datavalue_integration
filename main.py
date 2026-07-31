@@ -50,8 +50,8 @@ IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO = os.getenv("IHMIS_DEFAULT_ATTRIBUTE_OPTION
 ORG_UNIT_GROUP_ART_CENTERS = os.getenv("ORG_UNIT_GROUP_ART_CENTERS")
 ART_CENTER = os.getenv("ART_CENTER")
 
-PI_GROUP_ART_REPORT = os.getenv("PI_GROUP_ART_REPORT")
-HIV_PROGRAM_ID = os.getenv("HIV_PROGRAM_ID")
+#PI_GROUP_ART_REPORT = os.getenv("PI_GROUP_ART_REPORT")
+#HIV_PROGRAM_ID = os.getenv("HIV_PROGRAM_ID")
 
 program_indicators_api_url = f"{DHIS2_GET_API_URL}programIndicators"
 org_unit_api_url = f"{DHIS2_GET_API_URL}organisationUnits"
@@ -268,11 +268,14 @@ def main_with_logger():
                         #print( f"pi_de . { pi_dataValue[0] } , pi_ou . { pi_dataValue[1] }, pi_value . { pi_dataValue[2] } " )
                         if aggregated_de_dict.get(pi_dataValue[0]) is not None and orgUnit_code_uid_dict.get(pi_dataValue[1]) is not None:
                             #print( f"hmis_de . { aggregated_de_dict[pi_dataValue[0]] } , hmis_ou . { orgUnit_code_uid_dict[pi_dataValue[1]] }, hmis_value . { pi_dataValue[2] } " )
+                            value = int(float(pi_dataValue[2]))
                             dataValue = {
                                 "dataElement": aggregated_de_dict[pi_dataValue[0]].split("-")[0],
                                 "categoryOptionCombo": aggregated_de_dict[pi_dataValue[0]].split("-")[1],
                                 "attributeOptionCombo":IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO,
-                                "value": int(float(pi_dataValue[2])),
+                                #"value": int(float(pi_dataValue[2])),
+                                "value": 0 if value < 1 else value,
+                                #"value": "" if float(pi_dataValue[2]) < 1 else int(float(pi_dataValue[2])),
                                 "period": previous_nepali_monthly_period,
                                 "orgUnit": orgUnit_code_uid_dict[pi_dataValue[1]] ## use orgUnit code for HMIS instance
                                 #"orgUnit": pi_dataValue[1] ## use orgUnit uid for HMIS instance uid same in both instance
