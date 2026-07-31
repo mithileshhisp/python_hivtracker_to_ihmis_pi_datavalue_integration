@@ -10,6 +10,8 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase 
 from email import encoders
 
+import certifi  ## for post data in hmis production certificate issue
+
 ## for nepali date
 import nepali_datetime
 from datetime import datetime, timedelta, date
@@ -99,16 +101,39 @@ def log_error(message):
 #################################
 ## for nepal-hmis ######
 
-def get_dataValueSets_org_group( dataValueSet_endPoint,session_get_get, data_set, orgunit_group, isoPeriodMonthly ):
+def get_dataValueSets_org_group( dataValueSet_get_endPoint,session_get, data_set, orgunit_group, nepaliPeriodMonthly, ART_CENTER ):
     
-   
+    #http://113.199.192.43:13016/nepalhmis/api/dataValueSets.json?orgUnit=J6GqvSHE3ql&dataSet=ULiKMH5cPL4&period=208303
     #http://202.166.205.218/hmisdemo/api/dataValueSets.json?orgUnitGroup=pWtzmP5XVRC&dataSet=ULiKMH5cPL4&period=208209
-    
-    dataValueSet_url = f"{dataValueSet_endPoint}?orgUnitGroup={orgunit_group}&dataSet={data_set}&period={isoPeriodMonthly}"
-    #print(dataValueSet_url)
-    #print(f" dataValueSet_url : {dataValueSet_url}" )
 
-    response = session_get_get.get(dataValueSet_url )
+
+    #dataValueSet_get_url = f"{dataValueSet_get_endPoint}.json?orgUnitGroup={orgunit_group}&dataSet={data_set}&period={nepaliPeriodMonthly}"
+
+    """
+    Fetch DataValueSet either by orgUnit or orgUnitGroup.
+
+    If ART_CENTER is provided, orgUnit is used.
+    Otherwise orgUnitGroup is used.
+    """
+    #print(f"dataValueSet_url : {dataValueSet_get_url}" )
+    params = {
+        "dataSet": data_set,
+        "period": nepaliPeriodMonthly
+    }
+
+    if ART_CENTER:
+        params["orgUnit"] = ART_CENTER
+    else:
+        params["orgUnitGroup"] = orgunit_group
+
+    #print(dataValueSet_url)
+    
+    response = session_get.get(
+        f"{dataValueSet_get_endPoint}.json",
+        params=params
+    )
+
+    #response = session_get.get(dataValueSet_get_url )
     if response.status_code == 200:
         response_dataValueSet = response.json()
         aggregate_dataValues = response_dataValueSet.get('dataValues', [])
@@ -304,15 +329,33 @@ def get_program_indicators_data_values( program_indicators_data_value_url, sessi
     else:
         return []
 
-def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload ):
+def push_dataValueSet_in_dhis2( dataValueSet_post_endPoint, session_post, dataValueSet_payload ):
     #print(f"dataValueSet_payload : {json.dumps(dataValueSet_payload)}")
     #logging.info(f"dataValueSet_payload : {json.dumps(dataValueSet_payload)}")
 
+    '''
+    verify=False
+    ## for post data in hmis production certificate issue
+    import certifi
+    print(certifi.where())
+    response = requests.post(
+        url,
+        json=payload,
+        verify=certifi.where()
+    )
     response = session_post.post(
-        dataValueSet_endPoint,
+        dataValueSet_post_endPoint,
         data=json.dumps(dataValueSet_payload),
+        headers={"Content-Type": "application/json"},
+        verify=r"C:\certs\company-ca.pem"
+    )
+    '''
+    response = session_post.post(
+        dataValueSet_post_endPoint,
+        data=json.dumps(dataValueSet_payload), verify=False,
         headers={"Content-Type": "application/json"}
     )
+
     conflictsDetails = ""
     if response.status_code == 200:
         #print(f"DataValue created successfully.  Row No : {row_no} . orgUnit : {orgUnit} . response . {response.status_code}")
@@ -325,13 +368,6 @@ def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSe
         impCount = response.json().get("response", {}).get("importCount").get("imported")
         updateCount = response.json().get("response", {}).get("importCount").get("updated")
         ignoreCount = response.json().get("response", {}).get("importCount").get("ignored")
-
-        #conflictsDetails   = response.json().get("conflicts",[])
-        #description   = response.json().get("description", {})
-        #print(f"DataValue created successfully description : {description}")
-        #impCount = response.json().get("importCount", {}).get("imported")
-        #updateCount = response.json().get("importCount", {}).get("updated")
-        #ignoreCount = response.json().get("importCount", {}).get("ignored")
 
         print(f"DataValue created successfully. impCount : {impCount}. updateCount : {updateCount}. ignoreCount : {ignoreCount}. description : {description}")
         logging.info(f"DataValue created successfully. impCount : {impCount}. updateCount : {updateCount}. ignoreCount: {ignoreCount}. description : {description}")
@@ -352,7 +388,7 @@ def push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSe
         
         print(f"Failed to create dataValueSet. conflictsDetails: {conflictsDetails}")
         logging.info(f"conflictsDetails : {conflictsDetails}")
-        logging.error(f"Failed to dataValueSet events . conflictsDetails : {conflictsDetails} . error details: {response.json()} .Error: {response.text}")
+        logging.error(f"Failed to push dataValueSet . conflictsDetails : {conflictsDetails} . error details: {response.json()} .Error: {response.text}")
 
 
 def get_bs_month_start_end(bs_year, bs_month):
