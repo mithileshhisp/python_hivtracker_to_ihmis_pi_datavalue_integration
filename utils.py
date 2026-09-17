@@ -216,6 +216,44 @@ def get_program_indicator_list( program_indicators_api_url,session_get,META_ATTR
 
     return program_indicators
 
+def get_org_unit_list_with_attribute_value(org_unit_api_url, session_get, META_ATTRIBUTE_HMIS_ORG_UNIT_CODE):
+
+    orgUnit_code_uid_dict = {}
+    orgunits_list = []
+
+    url = (
+        f"{org_unit_api_url}"
+        f"?fields=id,name,attributeValues"
+        f"&filter=attributeValues.attribute.id:eq:{META_ATTRIBUTE_HMIS_ORG_UNIT_CODE}"
+        f"&paging=false"
+    )
+
+    response = session_get.get(url)
+
+    if response.status_code != 200:
+        print(f"Failed: {response.status_code}")
+        return {}, []
+
+    organisationUnits = response.json().get("organisationUnits", [])
+
+    for org_unit in organisationUnits:
+        # Store the complete org unit object
+        #orgunits_list.append(org_unit)
+
+        for attr in org_unit.get("attributeValues", []):
+
+            if attr["attribute"]["id"] == META_ATTRIBUTE_HMIS_ORG_UNIT_CODE:
+                orgUnit_code_uid_dict[org_unit["id"]] = attr["value"]
+                #orgunits_list.append(org_unit["id"])
+                orgunits_list.append({
+                    "id": org_unit["id"],
+                    "name": org_unit["name"]
+                })
+                break
+
+    return orgUnit_code_uid_dict, orgunits_list
+
+
 
 def get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT_CODE ):
 
@@ -229,7 +267,7 @@ def get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT
     #https://tracker.hivaids.gov.np/save-child-2.27/api/organisationUnits?fields=id,name,attributeValues&filter=attributeValues.attribute.id:eq:nEIktLQW451&paging=false
     org_unit_url_with_filters = f"{org_unit_api_url}?fields=id,name,attributeValues&filter={'&filter='.join(filters)}"
 
-    #print(f"org_unit_url_with_filters : {org_unit_url_with_filters}")
+    print(f"org_unit_url_with_filters : {org_unit_url_with_filters}")
 
     response_org_units = session_get.get( org_unit_url_with_filters )
 
@@ -247,6 +285,7 @@ def get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT
                     for org_units_attributeValue in org_units_attributeValues:
 
                         org_unit_uid = org_unit['id']
+                        
                         org_unit_code_hmis = org_units_attributeValue['value']
 
                         if org_unit_uid not in orgUnit_code_uid_dict:
@@ -339,7 +378,8 @@ def get_orgunit_grp_member( orgunit_grp_api_url,session_get, ORG_UNIT_GROUP_ART_
                                        
             print(f"orgunit_grp_member size {len(orgunits)}")
             logging.info(f"orgunit_grp_members size {len(orgunits)}")
-            orgunit_grp_member_list = ";".join(orgunits)
+            #orgunit_grp_member_list = ";".join(orgunits)
+            orgunit_grp_member_list = orgunits
         else:
             error_message = f" No orgunits found"
             print(error_message)
@@ -356,7 +396,40 @@ def get_orgunit_grp_member( orgunit_grp_api_url,session_get, ORG_UNIT_GROUP_ART_
     return orgunit_grp_member_list
 
 
-  
+def get_program_indicator_data_value(
+        program_indicators_data_value_url,
+        session_get,
+        program_indicator,
+        isoDatePeriods,
+        org_unit_uid
+    ):
+
+
+    params = {
+        "dimension": [
+            f"ou:{org_unit_uid}",
+            f"dx:{program_indicator}"
+        ],
+        "filter": f"pe:{isoDatePeriods}",
+        "displayProperty": "NAME",
+        "outputIdScheme": "UID"
+    }
+
+    response = session_get.get(program_indicators_data_value_url, params=params)
+    #print("Request URL:", response.request.url)
+    #response = session_get.get(program_indicators_data_value_url)
+
+    if response.status_code == 200:
+        return response.json().get("rows", [])
+
+    print(f"Error: {response.status_code}")
+    print(response.text)
+    log_info(f"response {response.text}")
+    return []
+
+
+
+
 #from urllib.parse import quote
 
 def get_program_indicators_data_values(
@@ -405,8 +478,8 @@ def get_program_indicators_data_values(
     }
 
     response = session_get.get(program_indicators_data_value_url, params=params)
-
-    #response = session_get.get(program_indicator_data_value_url)
+    #print("Request URL:", response.request.url)
+    #response = session_get.get(program_indicators_data_value_url)
 
     if response.status_code == 200:
         return response.json().get("rows", [])

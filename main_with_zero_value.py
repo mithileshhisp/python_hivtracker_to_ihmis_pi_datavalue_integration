@@ -28,7 +28,8 @@ from utils import (
     log_info,log_error,get_program_indicator_list,get_org_unit_list,
     get_aggregated_de_from_indicators,get_orgunit_grp_member,
     get_program_indicators_data_values, push_dataValueSet_in_dhis2,
-    get_bs_month_start_end,get_between_dates_iso,sendEmail
+    get_bs_month_start_end,get_between_dates_iso,sendEmail,
+    get_org_unit_list_with_attribute_value,get_program_indicator_data_value
    
 )
 
@@ -208,154 +209,135 @@ def main_with_logger():
     #log_info(f"orgunit_grp_members_size {len(orgunit_grp_members)}")
     #print(f"orgunit_grp_members_size {len(orgunit_grp_members)}")
 
-    orgUnit_code_uid_dict = get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT_CODE )
-    log_info(f"orgUnit_code_uid_dict_size {len(orgUnit_code_uid_dict)}")
-    print(f"orgUnit_code_uid_dict_size {len(orgUnit_code_uid_dict)}")
+    #orgUnit_code_uid_dict = get_org_unit_list( org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT_CODE )
+
+    orgUnit_code_uid_dict, orgunits_list = get_org_unit_list_with_attribute_value(org_unit_api_url,session_get,META_ATTRIBUTE_HMIS_ORG_UNIT_CODE)
+
+
+    log_info(f"orgUnit_code_uid_dict_size {len(orgUnit_code_uid_dict)}, orgunits_list {len(orgunits_list)}")
+    print(f"orgUnit_code_uid_dict_size {len(orgUnit_code_uid_dict)}, orgunits_list {len(orgunits_list)}")
+
+
     #print(f"HMIS code --  {orgUnit_code_uid_dict['aXquUzlrYYv']}, HMIS code --  {orgUnit_code_uid_dict['BiBfVGxLkLE']} ")
 
     aggregated_de_dict = get_aggregated_de_from_indicators( program_indicators_api_url,session_get,META_ATTRIBUTE_PI_TO_AGGREGATE_DE )
     print(f"aggregated dataElement_coc size {len(aggregated_de_dict)}")
     log_info(f"aggregated dataElement_coc size {len(aggregated_de_dict)}")
+
     #print(f"DE coc --  {aggregated_de_dict['UjYFHNozrnW']}, DE coc --  {aggregated_de_dict['ht5UD6UweLi']} ")
 
     #program_indicator = "vcFk6C2BZCx;UjYFHNozrnW;AM2UlJTIv3T;h6UU7fJNkez;YKKQmj4ENTy;YTyfolsnUhh;xPbkfVnHnAb;VaYBFHfr5vB;OIUpE0k1Fzz;jAyHNleIeUF;ht5UD6UweLi"
     #program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url,session_get, program_indicator, ORG_UNIT_GROUP_ART_CENTERS)
 
-    print("-" * 100)
-    log_info("-" * 100)
-
+    
     tempDataValues = list()
     if aggregated_de_dict:
         if program_indicator_list:
             total_pi_count = 0
-            for index, program_indicator in enumerate(program_indicator_list, start=1):
-            #for program_indicator in program_indicator_list:
-                #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id']}")
-                #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']}")
-                
-                #program_indicators_data_values = get_program_indicators_data_values(program_indicators_data_value_url, session_get, program_indicator['id'], ORG_UNIT_GROUP_ART_CENTERS, previousIsoDatePeriods, ART_CENTER)
-                print("-" * 100)
-                log_info("-" * 100)
+            print("-" * 100)
+            log_info("-" * 100)
+            for pi_index, program_indicator in enumerate(program_indicator_list, start=1):
 
-                program_indicators_data_values = get_program_indicators_data_values(
-                    program_indicators_data_value_url,
-                    session_get,
-                    program_indicator['id'],
-                    ORG_UNIT_GROUP_ART_CENTERS,
-                    previousIsoDatePeriods,
-                    ART_CENTER
-                )
-                
-                #pi_count = len(program_indicators_data_values)
-                #total_pi_count += pi_count   # 🔹 running total
-
-                #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id'] }, PI DataValueSize {len(program_indicators_data_values) }")
-                #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']} , PI DataValueSize {len(program_indicators_data_values) } ")
-
-                print(
-                    f"SL_NO {index}, "
-                    f"program_indicator_name {program_indicator['name']}, "
-                    f"program_indicator_id {program_indicator['id']}, "
-                    f"PI DataValueSize {len(program_indicators_data_values)}"
-                )
-
-                log_info(
-                    f"SL_NO {index}, "
-                    f"program_indicator_name {program_indicator['name']}, "
-                    f"program_indicator_id {program_indicator['id']}, "
-                    f"PI DataValueSize {len(program_indicators_data_values)}"
-                )
-
-                #print(f"program_indicators_data_values size {len(program_indicators_data_values)}")
-                #log_info(f"program_indicators_data_values size {len(program_indicators_data_values)}")
-                tempDataValues = list()
                 dataValueSet_payload = {}
-                #pi_orgunit_list = list()
-                if program_indicators_data_values:
-                    for pi_dataValue in program_indicators_data_values:
-                        #print( f"pi_de . { pi_dataValue[0] } , pi_ou . { pi_dataValue[1] }, pi_value . { pi_dataValue[2] } " )
-                        if aggregated_de_dict.get(pi_dataValue[0]) is not None and orgUnit_code_uid_dict.get(pi_dataValue[1]) is not None:
-                            #print( f"hmis_de . { aggregated_de_dict[pi_dataValue[0]] } , hmis_ou . { orgUnit_code_uid_dict[pi_dataValue[1]] }, hmis_value . { pi_dataValue[2] } " )
-                            
-                            #pi_orgunit_list.append(pi_dataValue[1])
+                tempDataValues = []
+                for org_index, org_unit in enumerate(orgunits_list, start=1):
 
-                            value = int(float(pi_dataValue[2]))
+                    program_indicators_data_value = get_program_indicator_data_value(
+                        program_indicators_data_value_url,
+                        session_get,
+                        program_indicator['id'],
+                        previousIsoDatePeriods,
+                        org_unit['id']
+                    )
+
+                    print(
+                        f"PI_SL_NO {pi_index}, "
+                        f"ORG_SL_NO {org_index}, "
+                        f"program_indicator_name {program_indicator['name']}, "
+                        f"org_unit_name {org_unit['name']}, "
+                        f"PI DataValueSize {len(program_indicators_data_value)}"
+                    )
+
+                    log_info(
+                        f"PI_SL_NO {pi_index}, "
+                        f"ORG_SL_NO {org_index}, "
+                        f"program_indicator_name {program_indicator['name']}, "
+                        f"org_unit_name {org_unit['name']}, "
+                        f"PI DataValueSize {len(program_indicators_data_value)}"
+                    )
+
+                    #pi_count = len(program_indicators_data_values)
+                    #total_pi_count += pi_count   # 🔹 running total
+
+                    #print(f"program_indicator_name { program_indicator['name']} , program_indicator_id { program_indicator['id'] }, PI DataValueSize {len(program_indicators_data_values) }")
+                    #log_info(f"program_indicator_name { program_indicator['name'] },  program_indicator_id { program_indicator['id']} , PI DataValueSize {len(program_indicators_data_values) } ")
+
+                    #print(f"program_indicators_data_values size {len(program_indicators_data_values)}")
+                    #log_info(f"program_indicators_data_values size {len(program_indicators_data_values)}")
+                    #tempDataValues = list()
+           
+                    if program_indicators_data_value and len(program_indicators_data_value) > 0:
+                        # Process data
+                        for pi_dataValue in program_indicators_data_value:
+                        #print( f"pi_de . { pi_dataValue[0] } , pi_ou . { pi_dataValue[1] }, pi_value . { pi_dataValue[2] } " )
+                            if (
+                                aggregated_de_dict.get(pi_dataValue[0]) is not None
+                                and orgUnit_code_uid_dict.get(pi_dataValue[1]) is not None
+                            ):
+
+                                value = 0 if pi_dataValue[2] is None else max(0, int(float(pi_dataValue[2])))
+
+                                dataValue = {
+                                    "dataElement": aggregated_de_dict[pi_dataValue[0]].split("-")[0],
+                                    "categoryOptionCombo": aggregated_de_dict[pi_dataValue[0]].split("-")[1],
+                                    "attributeOptionCombo":IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO,
+                                    #"value": int(float(pi_dataValue[2])),
+                                    "value": value,
+                                    #"value": "" if float(pi_dataValue[2]) < 1 else int(float(pi_dataValue[2])),
+                                    "period": previous_nepali_monthly_period,
+                                    "orgUnit": orgUnit_code_uid_dict[pi_dataValue[1]] ## use orgUnit code for HMIS instance
+                                    #"orgUnit": pi_dataValue[1] ## use orgUnit uid for HMIS instance uid same in both instance
+                                }
+                                tempDataValues.append(dataValue)
+                    else:
+                        # No PI values returned at all.
+                        # Push 0 for every ART Center.
+                        if aggregated_de_dict.get(program_indicator["id"]) is not None:
+
+                            dataElement = aggregated_de_dict[program_indicator['id']].split("-")[0]
+                            coc = aggregated_de_dict[program_indicator["id"]].split("-")[1]
+
                             dataValue = {
-                                "dataElement": aggregated_de_dict[pi_dataValue[0]].split("-")[0],
-                                "categoryOptionCombo": aggregated_de_dict[pi_dataValue[0]].split("-")[1],
+                                "dataElement": dataElement,
+                                "categoryOptionCombo": coc,
                                 "attributeOptionCombo":IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO,
                                 #"value": int(float(pi_dataValue[2])),
-                                "value": 0 if value < 1 else value,
-                                #"value": "" if float(pi_dataValue[2]) < 1 else int(float(pi_dataValue[2])),
+                                "value": 0,
                                 "period": previous_nepali_monthly_period,
-                                "orgUnit": orgUnit_code_uid_dict[pi_dataValue[1]] ## use orgUnit code for HMIS instance
-                                #"orgUnit": pi_dataValue[1] ## use orgUnit uid for HMIS instance uid same in both instance
-                            }
-                            tempDataValues.append(dataValue)
+                                "orgUnit": orgUnit_code_uid_dict[org_unit['id']] ## use orgUnit code for HMIS instance
+                        }
+                        tempDataValues.append(dataValue)
 
-                    dataValueSet_payload = {
-                            "orgUnitIdScheme": "code",
-                            #"dataSet": "vEURWncI7uL",
-                            "dataValues":tempDataValues
-                    }
-
-                    #print( f"dataValueSet_payload . { dataValueSet_payload }" )
-                    print("-" * 75)
-                    log_info("-" * 75)
-
-                    push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload )
-
-                    '''
-                    print("-" * 100)
-                    log_info("-" * 100)
-
-                    org_unit_with_no_pi_data = list(set(orgunit_grp_members) - set(pi_orgunit_list))
-                    #If you want to preserve the original order
-                    org_unit_with_no_pi_data = [member for member in orgunit_grp_members if member not in pi_orgunit_list]
-                    '''
-                '''
-                else:
-                    org_unit_with_no_pi_data =  orgunit_grp_members
-                
                 print("-" * 100)
                 log_info("-" * 100)
+                
+                if tempDataValues:
+                    dataValueSet_payload = {
+                        "orgUnitIdScheme": "code",
+                        "dataValues": tempDataValues
+                    }
 
-                print(
-                    f"SL_NO {index}, "
-                    f"program_indicator_name {program_indicator['name']}, "
-                    f"program_indicator_id {program_indicator['id']}, "
-                    f"org_unit_with_no_pi_data len {len(org_unit_with_no_pi_data)}"
+                push_dataValueSet_in_dhis2(
+                    dataValueSet_endPoint,
+                    session_post,
+                    dataValueSet_payload
                 )
 
-                ## create dataValueSet payload for zero datavalue no PI datavalue
-                dataValueSet_payload_for_zero = {}
-                tempDataValues_for_zero = []
-                for org_index, org_unit in enumerate(org_unit_with_no_pi_data, start=1):
-                    dataValue = {
-                        "dataElement": aggregated_de_dict[pi_dataValue[0]].split("-")[0],
-                        "categoryOptionCombo": aggregated_de_dict[pi_dataValue[0]].split("-")[1],
-                        "attributeOptionCombo":IHMIS_DEFAULT_ATTRIBUTE_OPTION_COMBO,
-                        "value": 0,
-                        "period": previous_nepali_monthly_period,
-                        "orgUnit": orgUnit_code_uid_dict[org_unit] ## use orgUnit code for HMIS instance
-                    }
-                    tempDataValues_for_zero.append(dataValue)
-
-                dataValueSet_payload_for_zero = {
-                        "orgUnitIdScheme": "code",
-                        #"dataSet": "vEURWncI7uL",
-                        "dataValues":tempDataValues_for_zero
-                }
-
                 #print( f"dataValueSet_payload . { dataValueSet_payload }" )
-                print("-" * 75)
-                log_info("-" * 75)
-                push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload_for_zero )
-                '''
+                #push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload )
                 print("-" * 100)
                 log_info("-" * 100)
-
-
+                
 
         #print( f"dataValueSet_payload . { dataValueSet_payload }" )
         #print( f" dataValueSet_payload size . { len(dataValueSet_payload) }" )

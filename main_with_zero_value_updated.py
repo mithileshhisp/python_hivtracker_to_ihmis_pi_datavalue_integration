@@ -270,14 +270,13 @@ def main_with_logger():
                 #log_info(f"program_indicators_data_values size {len(program_indicators_data_values)}")
                 tempDataValues = list()
                 dataValueSet_payload = {}
-                #pi_orgunit_list = list()
+                pi_orgunit_list = list()
                 if program_indicators_data_values:
                     for pi_dataValue in program_indicators_data_values:
                         #print( f"pi_de . { pi_dataValue[0] } , pi_ou . { pi_dataValue[1] }, pi_value . { pi_dataValue[2] } " )
                         if aggregated_de_dict.get(pi_dataValue[0]) is not None and orgUnit_code_uid_dict.get(pi_dataValue[1]) is not None:
                             #print( f"hmis_de . { aggregated_de_dict[pi_dataValue[0]] } , hmis_ou . { orgUnit_code_uid_dict[pi_dataValue[1]] }, hmis_value . { pi_dataValue[2] } " )
-                            
-                            #pi_orgunit_list.append(pi_dataValue[1])
+                            pi_orgunit_list.append(pi_dataValue[1])
 
                             value = int(float(pi_dataValue[2]))
                             dataValue = {
@@ -298,25 +297,22 @@ def main_with_logger():
                             #"dataSet": "vEURWncI7uL",
                             "dataValues":tempDataValues
                     }
-
                     #print( f"dataValueSet_payload . { dataValueSet_payload }" )
                     print("-" * 75)
                     log_info("-" * 75)
-
                     push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload )
 
-                    '''
                     print("-" * 100)
                     log_info("-" * 100)
 
                     org_unit_with_no_pi_data = list(set(orgunit_grp_members) - set(pi_orgunit_list))
+
                     #If you want to preserve the original order
-                    org_unit_with_no_pi_data = [member for member in orgunit_grp_members if member not in pi_orgunit_list]
-                    '''
-                '''
+                    #org_unit_with_no_pi_data = [member for member in orgunit_grp_members if member not in pi_orgunit_list]
+
                 else:
                     org_unit_with_no_pi_data =  orgunit_grp_members
-                
+
                 print("-" * 100)
                 log_info("-" * 100)
 
@@ -327,6 +323,12 @@ def main_with_logger():
                     f"org_unit_with_no_pi_data len {len(org_unit_with_no_pi_data)}"
                 )
 
+                log_info(
+                    f"SL_NO {index}, "
+                    f"program_indicator_name {program_indicator['name']}, "
+                    f"program_indicator_id {program_indicator['id']}, "
+                    f"org_unit_with_no_pi_data len {len(org_unit_with_no_pi_data)}"
+                )
                 ## create dataValueSet payload for zero datavalue no PI datavalue
                 dataValueSet_payload_for_zero = {}
                 tempDataValues_for_zero = []
@@ -351,7 +353,7 @@ def main_with_logger():
                 print("-" * 75)
                 log_info("-" * 75)
                 push_dataValueSet_in_dhis2( dataValueSet_endPoint, session_post, dataValueSet_payload_for_zero )
-                '''
+
                 print("-" * 100)
                 log_info("-" * 100)
 
