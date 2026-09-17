@@ -103,6 +103,7 @@ def log_error(message):
 
 def get_dataValueSets_org_group( dataValueSet_get_endPoint,session_get, data_set, orgunit_group, nepaliPeriodMonthly, ART_CENTER ):
     
+#http://113.199.192.43:13016/nepalhmis/api/dataValueSets.json?orgUnitGroup=pWtzmP5XVRC&dataSet=ULiKMH5cPL4&period=208303
     #http://113.199.192.43:13016/nepalhmis/api/dataValueSets.json?orgUnit=J6GqvSHE3ql&dataSet=ULiKMH5cPL4&period=208303
     #http://202.166.205.218/hmisdemo/api/dataValueSets.json?orgUnitGroup=pWtzmP5XVRC&dataSet=ULiKMH5cPL4&period=208209
 
@@ -134,6 +135,7 @@ def get_dataValueSets_org_group( dataValueSet_get_endPoint,session_get, data_set
     )
 
     #response = session_get.get(dataValueSet_get_url )
+    print("Request URL:", response.request.url)
     if response.status_code == 200:
         response_dataValueSet = response.json()
         aggregate_dataValues = response_dataValueSet.get('dataValues', [])
@@ -357,7 +359,10 @@ def push_dataValueSet_in_dhis2( dataValueSet_post_endPoint, session_post, dataVa
     )
 
     conflictsDetails = ""
+    #print(f"DataValueSet Response : {response.json()}")
     if response.status_code == 200:
+        #print(f"DataValue created successfully : {response.json()}")
+
         #print(f"DataValue created successfully.  Row No : {row_no} . orgUnit : {orgUnit} . response . {response.status_code}")
         #print(f"DataValue created successfully.  Row No : {row_no} . orgUnit : {orgUnit} . response . {response.json()}")
 

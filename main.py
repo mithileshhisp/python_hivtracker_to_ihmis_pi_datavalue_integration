@@ -229,10 +229,25 @@ def main_with_logger():
     print(f"aggregated_data_values size {len(aggregated_data_values)}")
 
     #tempDataValues = list()
+    tempDataValues = list()
     dataValueSet_payload = {}
     if aggregated_data_values:
+
+        for aggregate_dataValue in aggregated_data_values:
+            dataValue = {
+                "dataElement": aggregate_dataValue.get("dataElement"),
+                "categoryOptionCombo": aggregate_dataValue.get("categoryOptionCombo"),
+                "attributeOptionCombo":aggregate_dataValue.get("attributeOptionCombo"),
+                "value": aggregate_dataValue.get("value"),
+                "period": aggregate_dataValue.get("period"),
+                "orgUnit": aggregate_dataValue.get("orgUnit") 
+            }
+            tempDataValues.append(dataValue)
+
+
         dataValueSet_payload = {
-            "dataValues":aggregated_data_values
+            #"dataValues":aggregated_data_values
+            "dataValues":tempDataValues
         }
 
         #print( f"dataValueSet_payload . { dataValueSet_payload }" )
