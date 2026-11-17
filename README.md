@@ -55,3 +55,8 @@ pip install nepali-datetime
 pip install --upgrade requests certifi urllib3
 
 pip install python-dotenv
+
+## sudo rm -f -- HIV_*.csv
+
+## for xlsx/csv read write
+python3 -m pip install pandas openpyxl requests
